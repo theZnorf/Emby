@@ -1,0 +1,21 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>netstandard2.0</TargetFramework>
+    <AssemblyName>MultiTagSearch</AssemblyName>
+    <RootNamespace>MultiTagSearch</RootNamespace>
+    <Version>1.0.0</Version>
+    <Description>Emby plugin: search the library for items that carry ALL of a set of tags.</Description>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <EmbeddedResource Include="Web\multitagsearch.html" />
+    <EmbeddedResource Include="Web\multitagsearch.js" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- Plugin SDK. Plugins built against an older SDK keep working on newer servers (tested on 4.10.0.3). -->
+    <PackageReference Include="MediaBrowser.Server.Core" Version="4.9.1.90" />
+  </ItemGroup>
+
+</Project>
