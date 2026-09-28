@@ -51,6 +51,9 @@ define([], function () {
         self.tagsByName = {};
         self.initialized = false;
         self.searchToken = 0;
+        // Current results (in display order) and the ids of selected ones.
+        self.items = [];
+        self.selected = {};
 
         var form = view.querySelector('form');
 
@@ -114,7 +117,42 @@ define([], function () {
             self.loadTags();
         });
 
+        view.querySelector('.mts-btnPlay').addEventListener('click', function () {
+            self.play(false);
+        });
+        view.querySelector('.mts-btnShuffle').addEventListener('click', function () {
+            self.play(true);
+        });
+        view.querySelector('.mts-btnCollection').addEventListener('click', function () {
+            self.addToList('Collection');
+        });
+        view.querySelector('.mts-btnPlaylist').addEventListener('click', function () {
+            self.addToList('Playlist');
+        });
+        view.querySelector('.mts-btnSelectAll').addEventListener('click', function () {
+            self.items.forEach(function (item) { self.selected[item.Id] = true; });
+            self.updateSelection();
+        });
+        view.querySelector('.mts-btnSelectNone').addEventListener('click', function () {
+            self.selected = {};
+            self.updateSelection();
+        });
+
         view.querySelector('.mts-results').addEventListener('click', function (e) {
+            var check = e.target.closest('.mts-check');
+            if (check) {
+                e.preventDefault();
+                e.stopPropagation();
+                var id = check.closest('.mts-card').getAttribute('data-id');
+                if (self.selected[id]) {
+                    delete self.selected[id];
+                } else {
+                    self.selected[id] = true;
+                }
+                self.updateSelection();
+                return;
+            }
+
             var card = e.target.closest('.mts-card');
             if (!card || !globalThis.Emby || !Emby.Page || !Emby.Page.showItem) {
                 return;
@@ -286,8 +324,85 @@ define([], function () {
 
     View.prototype.clearResults = function () {
         this.searchToken++;
+        this.showItems([]);
         this.setStatus('');
-        this.view.querySelector('.mts-results').innerHTML = '';
+    };
+
+    View.prototype.showItems = function (items) {
+        this.items = items;
+        this.selected = {};
+        this.view.querySelector('.mts-toolbar').classList.toggle('hide', !items.length);
+        this.renderResults(items);
+        this.updateSelection();
+    };
+
+    View.prototype.getSelectedItems = function () {
+        var selected = this.selected;
+        return this.items.filter(function (item) { return selected[item.Id]; });
+    };
+
+    // Actions work on the selection, or on all results when nothing is selected.
+    View.prototype.getTargetItems = function () {
+        var selected = this.getSelectedItems();
+        return selected.length ? selected : this.items;
+    };
+
+    View.prototype.updateSelection = function () {
+        var view = this.view;
+        var selected = this.selected;
+        var count = this.getSelectedItems().length;
+
+        view.querySelectorAll('.mts-card').forEach(function (card) {
+            var on = !!selected[card.getAttribute('data-id')];
+            card.classList.toggle('mts-selected', on);
+            card.querySelector('.mts-check').setAttribute('aria-pressed', on ? 'true' : 'false');
+        });
+
+        view.querySelector('.mts-results').classList.toggle('mts-selecting', count > 0);
+        view.querySelector('.mts-scope').textContent = count ? '(' + count + ' selected)' : 'all';
+        view.querySelector('.mts-btnSelectNone').classList.toggle('hide', !count);
+    };
+
+    View.prototype.play = function (shuffle) {
+        var items = this.getTargetItems().slice(0);
+        if (!items.length) {
+            return;
+        }
+        if (shuffle) {
+            for (var i = items.length - 1; i > 0; i--) {
+                var j = Math.floor(Math.random() * (i + 1));
+                var tmp = items[i];
+                items[i] = items[j];
+                items[j] = tmp;
+            }
+        }
+
+        // Emby's own playback manager and player.
+        Emby.importModule('./modules/common/playback/playbackmanager.js').then(function (playbackManager) {
+            return playbackManager.play({
+                ids: items.map(function (item) { return item.Id; }),
+                serverId: items[0].ServerId
+            });
+        }).catch(function (err) {
+            console.error('Multi-Tag Search: playback failed', err);
+        });
+    };
+
+    View.prototype.addToList = function (type) {
+        var items = this.getTargetItems();
+        if (!items.length) {
+            return;
+        }
+
+        // Emby's own "Add to Collection / Playlist" dialog, which also offers creating a new one.
+        Emby.importModule('./modules/addtolist/addtolist.js').then(function (AddToList) {
+            return new AddToList().show({ items: items, type: type });
+        }).catch(function (err) {
+            // closing the dialog without choosing rejects; nothing to do
+            if (err) {
+                console.debug('Multi-Tag Search: add to list closed', err);
+            }
+        });
     };
 
     View.prototype.resolveTags = function (names) {
@@ -324,7 +439,7 @@ define([], function () {
 
         if (include.unknown.length && (matchAll || !include.resolved.length)) {
             // An unknown required tag can never match anything.
-            self.view.querySelector('.mts-results').innerHTML = '';
+            self.showItems([]);
             self.setStatus('No items found. Unknown tag(s) in this library: ' + include.unknown.join(', '));
             return;
         }
@@ -387,7 +502,7 @@ define([], function () {
                 return matchAll ? required.every(has) : required.some(has);
             });
 
-            self.renderResults(items);
+            self.showItems(items);
         }).catch(function () {
             if (token === self.searchToken) {
                 self.setStatus('Search failed. Check the server connection and try again.');
@@ -417,7 +532,9 @@ define([], function () {
             var tags = (item.TagItems || []).map(function (t) { return t.Name; }).join(', ');
 
             return '<a class="mts-card" href="' + escapeHtml(href) + '" data-id="' + escapeHtml(item.Id) + '" title="' + escapeHtml(tags) + '">' +
-                '<div class="mts-poster">' + img + '</div>' +
+                '<div class="mts-poster">' +
+                '<button type="button" class="mts-check" title="Select" aria-label="Select ' + escapeHtml(item.Name) + '" aria-pressed="false">&#10003;</button>' +
+                img + '</div>' +
                 '<div class="mts-title">' + escapeHtml(item.Name) + '</div>' +
                 '<div class="mts-sub">' + escapeHtml(sub) + '</div>' +
                 '</a>';

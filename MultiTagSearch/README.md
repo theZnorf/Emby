@@ -18,6 +18,13 @@ Tested on Emby Server **4.10.0.3** (the `emby/embyserver` Docker image).
 - Tag suggestions from your library, matched case-insensitively.
 - Filters for type (Movies, Series, Episodes, …) and library, plus sorting.
 - The search is kept when you open an item and come back.
+- **Play / Shuffle** all results, or only the ticked ones, in Emby's own player.
+  The queue follows the on-screen sort order.
+- **Add to collection / Add to playlist** for all or ticked results, using
+  Emby's own dialog (choose an existing one or create a new one). Collections
+  and playlists then show up in every Emby app, TV and mobile included.
+- **Select all / Clear selection**. Tick single items with the circle in the
+  top-left corner of a poster.
 
 ## Where to find it
 
@@ -44,15 +51,14 @@ docker run --rm -v "$PWD":/src -w /src mcr.microsoft.com/dotnet/sdk:8.0 dotnet b
 
 The plugin is `out/MultiTagSearch.dll`.
 
-## Install (TrueNAS / Docker)
+## Install
 
-1. Copy `MultiTagSearch.dll` into the `plugins` folder of Emby's config
-   directory (the dataset mounted at `/config` in the container, i.e.
-   `/config/plugins/`).
-2. Restart the Emby app/container.
-3. The plugin shows up under Manage Emby Server → Plugins as *Multi-Tag Search*.
+Copy `MultiTagSearch.dll` into Emby's `plugins` folder (`/config/plugins`
+inside the container) and restart Emby.
 
-To uninstall, delete the DLL and restart.
+For TrueNAS custom apps (Docker Compose), see
+**[INSTALL-TrueNAS.md](INSTALL-TrueNAS.md)**. It also explains how to get a
+prebuilt DLL from GitHub Actions.
 
 ## How it works
 

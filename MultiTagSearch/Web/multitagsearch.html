@@ -24,6 +24,16 @@
             .mts-poster img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
             .mts-poster span { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; text-align: center; padding: .5em; font-size: .9em; opacity: .7; }
             .mts-card:hover .mts-poster, .mts-card:focus .mts-poster { outline: 3px solid #52b54b; }
+            .mts-toolbar { display: flex; flex-wrap: wrap; gap: .6em; align-items: center; margin-bottom: 1.2em; }
+            .mts-toolbar.hide { display: none; }
+            .mts-toolbar .mts-btn { padding: .5em 1em; }
+            .mts-sep { flex: 1 1 0; }
+            .mts-btnSelectNone.hide { display: none; }
+            .mts-check { position: absolute; top: .4em; left: .4em; z-index: 1; width: 1.6em; height: 1.6em; border-radius: 50%; border: 2px solid #fff; background: rgba(0,0,0,.45); color: #fff; font-size: .9em; line-height: 1; display: flex; align-items: center; justify-content: center; cursor: pointer; opacity: 0; transition: opacity .15s; padding: 0; }
+            .mts-card:hover .mts-check, .mts-card:focus-within .mts-check, .mts-selecting .mts-check { opacity: 1; }
+            .mts-card.mts-selected .mts-check { background: #52b54b; border-color: #52b54b; }
+            .mts-card.mts-selected .mts-poster { outline: 3px solid #52b54b; }
+            @media (hover: none) { .mts-check { opacity: 1; } }
             .mts-title { font-size: .95em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
             .mts-sub { font-size: .8em; opacity: .65; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
         </style>
@@ -86,11 +96,22 @@
             <div class="mts-actions">
                 <button type="submit" class="mts-btn mts-btn-primary">Search</button>
                 <button type="button" class="mts-btn mts-btnClear">Clear</button>
-                <span class="mts-hint">Tags are matched by name, case-insensitive. Click a result to open it.</span>
+                <span class="mts-hint">Tags are matched by name, case-insensitive. Click a result to open it, or tick results to play or collect just those.</span>
             </div>
         </form>
 
         <div class="mts-status"></div>
+
+        <div class="mts-toolbar hide">
+            <button type="button" class="mts-btn mts-btn-primary mts-btnPlay" title="Play in Emby's player">&#9654; Play <span class="mts-scope"></span></button>
+            <button type="button" class="mts-btn mts-btnShuffle">Shuffle</button>
+            <button type="button" class="mts-btn mts-btnCollection">Add to collection…</button>
+            <button type="button" class="mts-btn mts-btnPlaylist">Add to playlist…</button>
+            <span class="mts-sep"></span>
+            <button type="button" class="mts-btn mts-btnSelectAll">Select all</button>
+            <button type="button" class="mts-btn mts-btnSelectNone hide">Clear selection</button>
+        </div>
+
         <div class="mts-results"></div>
     </div>
 </div>
